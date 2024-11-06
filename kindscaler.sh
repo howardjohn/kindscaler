@@ -79,6 +79,10 @@ for i in $(seq $start_index $end_index); do
         --volume /lib/modules:/lib/modules:ro -e KIND_EXPERIMENTAL_CONTAINERD_SNAPSHOTTER \
         --detach --tty --label io.x-k8s.kind.cluster=$CLUSTER_NAME --net kind \
         --restart=on-failure:1 --init=false $IMAGE > /dev/null 2>&1
+
+        # Copy the containerd config, which may have been customized
+        docker exec $CONTAINER_NAME tar Ccf /etc/containerd/ - config.toml | docker cp - $CLUSTER_NAME-$ROLE$i:/etc/containerd/
+        docker exec $CLUSTER_NAME-$ROLE$i bash -c '! pgrep --exact containerd || systemctl restart containerd'
         NEW_IP=$(docker inspect $CLUSTER_NAME-$ROLE$i | grep IPAddress | tail -1 | cut -d "\"" -f 4)
         sed -i -r "s/$ORIGINAL_IP/$NEW_IP/g" "./kubeadm-$i.conf"
         sleep 5
@@ -98,6 +102,9 @@ for i in $(seq $start_index $end_index); do
         --volume /lib/modules:/lib/modules:ro -e KIND_EXPERIMENTAL_CONTAINERD_SNAPSHOTTER \
         --detach --tty --label io.x-k8s.kind.cluster=$CLUSTER_NAME --net kind \
         --restart=on-failure:1 --init=false $IMAGE > /dev/null 2>&1
+        # Copy the containerd config, which may have been customized
+        docker exec $CONTAINER_NAME tar Ccf /etc/containerd/ - config.toml | docker cp - $CLUSTER_NAME-$ROLE$i:/etc/containerd/
+        docker exec $CLUSTER_NAME-$ROLE$i bash -c '! pgrep --exact containerd || systemctl restart containerd'
         NEW_IP=$(docker inspect $CLUSTER_NAME-$ROLE$i | grep IPAddress | tail -1 | cut -d "\"" -f 4)
         sed -i -r "s/$ORIGINAL_IP/$NEW_IP/g" "./kubeadm-$i.conf"
         sleep 10
@@ -137,6 +144,5 @@ else
 fi
 
 done
-
 
 
